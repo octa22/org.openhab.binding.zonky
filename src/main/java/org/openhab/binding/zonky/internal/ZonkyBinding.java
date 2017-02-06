@@ -13,6 +13,7 @@ import com.google.gson.JsonParser;
 import org.apache.commons.lang.StringUtils;
 import org.openhab.binding.zonky.ZonkyBindingProvider;
 import org.openhab.core.binding.AbstractActiveBinding;
+import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.StringType;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.State;
@@ -176,23 +177,65 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
         }
 
         String wallet = getWallet();
-        if (wallet == null) {
+        String statistics = getStatistics();
+        if (wallet == null || statistics == null) {
             return;
         }
-        JsonObject jobject = parser.parse(wallet).getAsJsonObject();
-        if (jobject != null) {
-            //&& jobject.has("balance")
-            for (final ZonkyBindingProvider provider : providers) {
-                for (String itemName : provider.getItemNames()) {
-                    String type = provider.getItemType(itemName);
-                    if (jobject.has(type)) {
-                        Number value = jobject.get(type).getAsBigDecimal();
-                        eventPublisher.postUpdate(itemName, new StringType(value.toString() + " CZK"));
+        JsonObject walletObject = parser.parse(wallet).getAsJsonObject();
+        JsonObject statObject = parser.parse(statistics).getAsJsonObject();
+        if (walletObject == null || statObject == null) {
+            return;
+        }
+
+        for (final ZonkyBindingProvider provider : providers) {
+            for (String itemName : provider.getItemNames()) {
+                String type = provider.getItemType(itemName);
+                if (isWalletType(type) && walletObject.has(type)) {
+                    Number value = walletObject.get(type).getAsBigDecimal();
+                    eventPublisher.postUpdate(itemName, new StringType(value.toString()));
+                } else {
+                    if (isPercentType(type) && statObject.has(type)) {
+                        Double value = statObject.get(type).getAsDouble() * 100;
+                        eventPublisher.postUpdate(itemName, new DecimalType(value));
+                        continue;
                     }
+                    JsonObject currentObject = statObject.getAsJsonObject("currentOverview");
+                    JsonObject overallObject = statObject.getAsJsonObject("overallOverview");
+                    String subType;
+                    if( type.startsWith("currentOverview.")) {
+                        subType = type.replace("currentOverview.", "");
+                        if( currentObject.has(subType)) {
+                            Number value = currentObject.get(subType).getAsBigDecimal();
+                            eventPublisher.postUpdate(itemName, new StringType(value.toString()));
+                            continue;
+                        }
+                    }
+                    if( type.startsWith("overallOverview.")) {
+                        subType = type.replace("overallOverview.", "");
+                        if( overallObject.has(subType)) {
+                            Number value = overallObject.get(subType).getAsBigDecimal();
+                            eventPublisher.postUpdate(itemName, new StringType(value.toString() ));
+                            continue;
+                        }
+                    }
+
+
                 }
             }
         }
+    }
 
+    private boolean isPercentType(String type) {
+        return type.equals("currentProfitability") ||
+                type.equals("expectedProfitability");
+    }
+
+    private boolean isWalletType(String type) {
+        return type.equals("balance") ||
+                type.equals("availableBalance") ||
+                type.equals("blockedBalance") ||
+                type.equals("creditSum") ||
+                type.equals("debitSum");
     }
 
     private Boolean refreshToken() {
@@ -233,11 +276,19 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     }
 
     private String getWallet() {
+        return sendJsonRequest("users/me/wallet");
+    }
+
+    private String getStatistics() {
+        return sendJsonRequest("users/me/investments/statistics");
+    }
+
+    private String sendJsonRequest(String uri) {
         String url = null;
 
         try {
             //login
-            url = ZONKY_URL + "users/me/wallet";
+            url = ZONKY_URL + uri;
 
             URL cookieUrl = new URL(url);
             HttpsURLConnection connection = (HttpsURLConnection) cookieUrl.openConnection();
@@ -321,9 +372,10 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     }
 
     private void setupConnectionDefaults(HttpsURLConnection connection) {
-        //connection.setRequestProperty("User-Agent", USER_AGENT);
+        connection.setRequestProperty("User-Agent", USER_AGENT);
         connection.setRequestProperty("Accept-Language", "cs-CZ");
         //connection.setRequestProperty("Accept-Encoding", "gzip, deflate");
+        connection.setRequestProperty("Accept", "application/json, text/plain, */*");
         connection.setRequestProperty("Referer", "https://app.zonky.cz/");
         connection.setInstanceFollowRedirects(false);
         connection.setUseCaches(false);
