@@ -13,6 +13,8 @@ import com.google.gson.JsonParser;
 import org.apache.commons.lang.StringUtils;
 import org.openhab.binding.zonky.ZonkyBindingProvider;
 import org.openhab.core.binding.AbstractActiveBinding;
+import org.openhab.core.items.ItemNotFoundException;
+import org.openhab.core.items.ItemRegistry;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.StringType;
 import org.openhab.core.types.Command;
@@ -48,12 +50,14 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     private final String ZONKY_URL = "https://api.zonky.cz/";
     private final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.59 Safari/537.36";
 
+
     /**
      * The BundleContext. This is only valid when the bundle is ACTIVE. It is set in the activate()
      * method and must not be accessed anymore once the deactivate() method was called or before activate()
      * was called.
      */
     private BundleContext bundleContext;
+    private ItemRegistry itemRegistry;
 
 
     /**
@@ -73,6 +77,13 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     public ZonkyBinding() {
     }
 
+    public void setItemRegistry(ItemRegistry itemRegistry) {
+        this.itemRegistry = itemRegistry;
+    }
+
+    public void unsetItemRegistry(ItemRegistry itemRegistry) {
+        this.itemRegistry = null;
+    }
 
     /**
      * Called by the SCR to activate the component with its configuration read from CAS
@@ -187,39 +198,46 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             return;
         }
 
+        State oldValue = null;
+
         for (final ZonkyBindingProvider provider : providers) {
             for (String itemName : provider.getItemNames()) {
                 String type = provider.getItemType(itemName);
-                if (isWalletType(type) && walletObject.has(type)) {
-                    Number value = walletObject.get(type).getAsBigDecimal();
-                    eventPublisher.postUpdate(itemName, new StringType(value.toString()));
-                } else {
-                    if (isPercentType(type) && statObject.has(type)) {
-                        Double value = statObject.get(type).getAsDouble() * 100;
-                        eventPublisher.postUpdate(itemName, new DecimalType(value));
-                        continue;
-                    }
-                    JsonObject currentObject = statObject.getAsJsonObject("currentOverview");
-                    JsonObject overallObject = statObject.getAsJsonObject("overallOverview");
-                    String subType;
-                    if( type.startsWith("currentOverview.")) {
-                        subType = type.replace("currentOverview.", "");
-                        if( currentObject.has(subType)) {
-                            Number value = currentObject.get(subType).getAsBigDecimal();
-                            eventPublisher.postUpdate(itemName, new StringType(value.toString()));
-                            continue;
+                State newValue = null;
+                try {
+                    oldValue = itemRegistry.getItem(itemName).getState();
+                    if (isWalletType(type) && walletObject.has(type)) {
+                        Number value = walletObject.get(type).getAsBigDecimal();
+                        newValue = new StringType(value.toString());
+                    } else {
+                        if (isPercentType(type) && statObject.has(type)) {
+                            Double value = statObject.get(type).getAsDouble() * 100;
+                            newValue = new DecimalType(value);
+                        }
+                        if( newValue == null) {
+                            JsonObject currentObject = statObject.getAsJsonObject("currentOverview");
+                            JsonObject overallObject = statObject.getAsJsonObject("overallOverview");
+                            String subType;
+                            if (type.startsWith("currentOverview.")) {
+                                subType = type.replace("currentOverview.", "");
+                                if (currentObject.has(subType)) {
+                                    Number value = currentObject.get(subType).getAsBigDecimal();
+                                    newValue = new StringType(value.toString());
+                                }
+                            } else if (type.startsWith("overallOverview.")) {
+                                subType = type.replace("overallOverview.", "");
+                                if (overallObject.has(subType)) {
+                                    Number value = overallObject.get(subType).getAsBigDecimal();
+                                    newValue = new StringType(value.toString());
+                                }
+                            }
                         }
                     }
-                    if( type.startsWith("overallOverview.")) {
-                        subType = type.replace("overallOverview.", "");
-                        if( overallObject.has(subType)) {
-                            Number value = overallObject.get(subType).getAsBigDecimal();
-                            eventPublisher.postUpdate(itemName, new StringType(value.toString() ));
-                            continue;
-                        }
+                    if (oldValue != null && newValue != null && !oldValue.equals(newValue)) {
+                        eventPublisher.postUpdate(itemName, newValue);
                     }
-
-
+                } catch (ItemNotFoundException e) {
+                    logger.error(e.toString());
                 }
             }
         }
