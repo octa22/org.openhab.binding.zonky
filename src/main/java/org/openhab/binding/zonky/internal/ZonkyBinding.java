@@ -98,8 +98,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
         // configuration-policy set to require. If set to 'optional' then the configuration may be null
 
         readConfiguration(configuration);
-
-        setProperlyConfigured(true);
+        setProperlyConfigured(!userName.isEmpty() && !password.isEmpty());
     }
 
     private void readConfiguration(Map<String, Object> configuration) {
@@ -127,6 +126,8 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
      */
     public void modified(final Map<String, Object> configuration) {
         // update the internal configuration accordingly
+        readConfiguration(configuration);
+        setProperlyConfigured(!userName.isEmpty() && !password.isEmpty());
     }
 
     /**
@@ -148,7 +149,9 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
         this.bundleContext = null;
         // deallocate resources here that are no longer needed and
         // should be reset when activating this binding again
-        logout();
+        if (!token.isEmpty()) {
+            logout();
+        }
     }
 
 
@@ -178,7 +181,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             return;
         }
         //first call
-        if (token.equals("")) {
+        if (token.isEmpty()) {
             login();
         } else {
             if (!refreshToken()) {
@@ -186,6 +189,9 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 login();
             }
         }
+
+        if (token.isEmpty())
+            return;
 
         String wallet = getWallet();
         String statistics = getStatistics();
@@ -377,7 +383,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             if (jobject != null) {
                 token = jobject.get("access_token").getAsString();
                 refreshToken = jobject.get("refresh_token").getAsString();
-                if (!token.equals("")) {
+                if (!token.isEmpty()) {
                     logger.info("Successfully logged in to Zonky!");
                 }
             }
