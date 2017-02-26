@@ -195,12 +195,15 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
 
         String wallet = getWallet();
         String statistics = getStatistics();
-        if (wallet == null || statistics == null) {
+        String weekly = getWeeklyStatistics();
+        if (wallet == null || statistics == null || weekly == null) {
             return;
         }
         JsonObject walletObject = parser.parse(wallet).getAsJsonObject();
         JsonObject statObject = parser.parse(statistics).getAsJsonObject();
-        if (walletObject == null || statObject == null) {
+        JsonObject weeklyObject = parser.parse(weekly).getAsJsonObject();
+
+        if (walletObject == null || statObject == null || weeklyObject == null) {
             return;
         }
 
@@ -215,12 +218,21 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                     if (isWalletType(type) && walletObject.has(type)) {
                         Number value = walletObject.get(type).getAsBigDecimal();
                         newValue = new StringType(value.toString());
+                    } else if (isWeeklyStatiscticsType(type) && weeklyObject.has(type.replace("weekly.", ""))) {
+                        type = type.replace("weekly.", "");
+                        double value;
+                        if (type.equals("newInvestments") || type.equals("paidInstalments")) {
+                            value = weeklyObject.get(type).getAsInt();
+                        } else {
+                            value = weeklyObject.get(type).getAsDouble();
+                        }
+                        newValue = new DecimalType(value);
                     } else {
                         if (isPercentType(type) && statObject.has(type)) {
                             Double value = statObject.get(type).getAsDouble() * 100;
                             newValue = new DecimalType(value);
                         }
-                        if( newValue == null) {
+                        if (newValue == null) {
                             JsonObject currentObject = statObject.getAsJsonObject("currentOverview");
                             JsonObject overallObject = statObject.getAsJsonObject("overallOverview");
                             String subType;
@@ -260,6 +272,10 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 type.equals("blockedBalance") ||
                 type.equals("creditSum") ||
                 type.equals("debitSum");
+    }
+
+    private boolean isWeeklyStatiscticsType(String type) {
+        return type.startsWith("weekly.");
     }
 
     private Boolean refreshToken() {
@@ -306,6 +322,11 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     private String getStatistics() {
         return sendJsonRequest("users/me/investments/statistics");
     }
+
+    private String getWeeklyStatistics() {
+        return sendJsonRequest("users/me/investments/weekly-statistics");
+    }
+
 
     private String sendJsonRequest(String uri) {
         String url = null;
