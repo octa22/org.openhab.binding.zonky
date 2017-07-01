@@ -126,8 +126,10 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
      */
     public void modified(final Map<String, Object> configuration) {
         // update the internal configuration accordingly
-        readConfiguration(configuration);
-        setProperlyConfigured(!userName.isEmpty() && !password.isEmpty());
+        if (configuration != null) {
+            readConfiguration(configuration);
+            setProperlyConfigured(!userName.isEmpty() && !password.isEmpty());
+        }
     }
 
     /**
