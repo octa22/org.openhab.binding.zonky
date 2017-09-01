@@ -8,10 +8,10 @@
  */
 package org.openhab.binding.zonky.internal;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.Gson;
 import org.apache.commons.lang.StringUtils;
 import org.openhab.binding.zonky.ZonkyBindingProvider;
+import org.openhab.binding.zonky.internal.model.*;
 import org.openhab.core.binding.AbstractActiveBinding;
 import org.openhab.core.items.ItemNotFoundException;
 import org.openhab.core.items.ItemRegistry;
@@ -72,7 +72,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     private String refreshToken = "";
 
     //Gson parser
-    private JsonParser parser = new JsonParser();
+    private Gson gson = new Gson();
 
     public ZonkyBinding() {
     }
@@ -201,14 +201,10 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
         if (wallet == null || statistics == null || weekly == null) {
             return;
         }
-        JsonObject walletObject = parser.parse(wallet).getAsJsonObject();
-        JsonObject statObject = parser.parse(statistics).getAsJsonObject();
-        JsonObject weeklyObject = parser.parse(weekly).getAsJsonObject();
 
-        if (walletObject == null || statObject == null || weeklyObject == null) {
-            return;
-        }
-
+        ZonkyWalletResponse walletResponse = gson.fromJson(wallet, ZonkyWalletResponse.class);
+        ZonkyStatResponse statResponse = gson.fromJson(statistics, ZonkyStatResponse.class);
+        ZonkyWeeklyStatResponse weeklyResponse = gson.fromJson(weekly, ZonkyWeeklyStatResponse.class);
         State oldValue = null;
 
         for (final ZonkyBindingProvider provider : providers) {
@@ -217,39 +213,31 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 State newValue = null;
                 try {
                     oldValue = itemRegistry.getItem(itemName).getState();
-                    if (isWalletType(type) && walletObject.has(type)) {
-                        Number value = walletObject.get(type).getAsBigDecimal();
+                    if (isWalletType(type)) {
+                        Number value = getWalletValue(walletResponse, type);
                         newValue = new StringType(value.toString());
-                    } else if (isWeeklyStatiscticsType(type) && weeklyObject.has(type.replace("weekly.", ""))) {
+                    } else if (isWeeklyStatiscticsType(type)) {
                         type = type.replace("weekly.", "");
-                        double value;
-                        if (type.equals("newInvestments") || type.equals("paidInstalments")) {
-                            value = weeklyObject.get(type).getAsInt();
-                        } else {
-                            value = weeklyObject.get(type).getAsDouble();
-                        }
-                        newValue = new DecimalType(value);
+                        Number value = getWeeklyStatValue(weeklyResponse, type);
+                        newValue = new DecimalType(value.doubleValue());
                     } else {
-                        if (isPercentType(type) && statObject.has(type)) {
-                            Double value = statObject.get(type).getAsDouble() * 100;
-                            newValue = new DecimalType(value);
+                        if (isPercentType(type)) {
+                            Double value = type.equals("currentProfitability") ? statResponse.getCurrentProfitability() : statResponse.getExpectedProfitability();
+                            newValue = new DecimalType(value * 100);
                         }
                         if (newValue == null) {
-                            JsonObject currentObject = statObject.getAsJsonObject("currentOverview");
-                            JsonObject overallObject = statObject.getAsJsonObject("overallOverview");
+                            ZonkyCurrentOverview currentOverview = statResponse.getCurrentOverview();
+                            ZonkyOverallOverview overallOverview = statResponse.getOverallOverview();
+
                             String subType;
                             if (type.startsWith("currentOverview.")) {
                                 subType = type.replace("currentOverview.", "");
-                                if (currentObject.has(subType)) {
-                                    Number value = currentObject.get(subType).getAsBigDecimal();
-                                    newValue = new StringType(value.toString());
-                                }
+                                Number value = GetStatCurrentOverviewValue(currentOverview, subType);
+                                newValue = new StringType(value.toString());
                             } else if (type.startsWith("overallOverview.")) {
                                 subType = type.replace("overallOverview.", "");
-                                if (overallObject.has(subType)) {
-                                    Number value = overallObject.get(subType).getAsBigDecimal();
-                                    newValue = new StringType(value.toString());
-                                }
+                                Number value = GetStatOverallOverviewValue(overallOverview, subType);
+                                newValue = new StringType(value.toString());
                             }
                         }
                     }
@@ -261,6 +249,97 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 }
             }
         }
+    }
+
+    private Number getWeeklyStatValue(ZonkyWeeklyStatResponse weekly, String type) {
+        switch (type) {
+            case "newInvestments":
+                return weekly.getNewInvestments();
+            case "newInvestmentsAmount":
+                return weekly.getNewInvestmentsAmount();
+            case "paidInstalments":
+                return weekly.getPaidInstalments();
+            case "paidInstalmentsAmount":
+                return weekly.getPaidInstalmentsAmount();
+            case "soldInvestments":
+                return weekly.getSoldInvestments();
+            case "soldInvestmentsAmount":
+                return weekly.getSoldInvestmentsAmount();
+            case "boughtInvestments":
+                return weekly.getBoughtInvestments();
+            case "boughtInvestmentsAmount":
+                return weekly.getBoughtInvestmentsAmount();
+        }
+        return 0;
+    }
+
+    private boolean isIntegerType(String type) {
+        return type.equals("newInvestments") || type.equals("paidInstalments") || type.equals("soldInvestments") || type.equals("boughtInvestments");
+    }
+
+    private Number GetStatOverallOverviewValue(ZonkyOverallOverview overallOverview, String subType) {
+        switch (subType) {
+            case "feesAmount":
+                return overallOverview.getFeesAmount();
+            case "interestPaid":
+                return overallOverview.getInterestPaid();
+            case "investmentCount":
+                return overallOverview.getInvestmentCount();
+            case "netIncome":
+                return overallOverview.getNetIncome();
+            case "principalLost":
+                return overallOverview.getPrincipalLost();
+            case "principalPaid":
+                return overallOverview.getPrincipalPaid();
+            case "totalInvestment":
+                return overallOverview.getTotalInvestment();
+        }
+        return 0;
+    }
+
+    private Number GetStatCurrentOverviewValue(ZonkyCurrentOverview currentOverview, String subType) {
+        switch (subType) {
+            case "interestLeft":
+                return currentOverview.getInterestLeft();
+            case "interestLeftDue":
+                return currentOverview.getInterestLeftDue();
+            case "interestLeftToPay":
+                return currentOverview.getInterestLeftToPay();
+            case "interestPaid":
+                return currentOverview.getInterestPaid();
+            case "interestPanned":
+                return currentOverview.getInterestPlanned();
+            case "investmentCount":
+                return currentOverview.getInvestmentCount();
+            case "principalLeft":
+                return currentOverview.getPrincipalLeft();
+            case "principalLeftDue":
+                return currentOverview.getPrincipalLeftDue();
+            case "principalLeftToPay":
+                return currentOverview.getPrincipalLeftToPay();
+            case "principalPaid":
+                return currentOverview.getPrincipalPaid();
+            case "totalInvestment":
+                return currentOverview.getTotalInvestment();
+        }
+
+        return 0;
+    }
+
+    private Number getWalletValue(ZonkyWalletResponse wallet, String type) {
+        switch (type) {
+            case "balance":
+                return wallet.getBalance();
+            case "availableBalance":
+                return wallet.getAvailableBalance();
+            case "blockedBalance":
+                return wallet.getBlockedBalance();
+            case "creditSum":
+                return wallet.getCreditSum();
+            case "debitSum":
+                return wallet.getDebitSum();
+        }
+        return 0;
     }
 
     private boolean isPercentType(String type) {
@@ -302,12 +381,17 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             }
             String line = readResponse(connection);
             logger.debug("Response: " + line);
+            /*
             JsonObject jobject = parser.parse(line).getAsJsonObject();
             if (jobject != null) {
                 token = jobject.get("access_token").getAsString();
                 refreshToken = jobject.get("refresh_token").getAsString();
                 return true;
-            }
+            }*/
+            ZonkyTokenResponse response = gson.fromJson(line, ZonkyTokenResponse.class);
+            token = response.getAccessToken();
+            refreshToken = response.getRefreshToken();
+            return true;
 
         } catch (MalformedURLException e) {
             logger.error("The URL '" + url + "' is malformed: " + e.toString());
@@ -402,15 +486,13 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             }
             String line = readResponse(connection);
             logger.debug("Response: " + line);
-            JsonObject jobject = parser.parse(line).getAsJsonObject();
-            if (jobject != null) {
-                token = jobject.get("access_token").getAsString();
-                refreshToken = jobject.get("refresh_token").getAsString();
-                if (!token.isEmpty()) {
-                    logger.info("Successfully logged in to Zonky!");
-                }
-            }
 
+            ZonkyTokenResponse response = gson.fromJson(line, ZonkyTokenResponse.class);
+            token = response.getAccessToken();
+            refreshToken = response.getRefreshToken();
+            if (!token.isEmpty()) {
+                logger.info("Successfully logged in to Zonky!");
+            }
         } catch (MalformedURLException e) {
             logger.error("The URL '" + url + "' is malformed: " + e.toString());
         } catch (Exception e) {
