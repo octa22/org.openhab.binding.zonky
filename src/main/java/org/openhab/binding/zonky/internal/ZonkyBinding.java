@@ -222,7 +222,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                         newValue = new DecimalType(value.doubleValue());
                     } else {
                         if (isPercentType(type)) {
-                            Double value = type.equals("currentProfitability") ? statResponse.getCurrentProfitability() : statResponse.getExpectedProfitability();
+                            Double value = type.equals("currentProfitability") ? statResponse.getCurrentProfitability().doubleValue() : statResponse.getExpectedProfitability().doubleValue();
                             newValue = new DecimalType(value * 100);
                         }
                         if (newValue == null) {

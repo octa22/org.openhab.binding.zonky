@@ -2,19 +2,19 @@ package org.openhab.binding.zonky.internal.model;
 
 public class ZonkyWeeklyStatResponse {
     private int newInvestments;
-    private double newInvestmentsAmount;
+    private Number newInvestmentsAmount;
     private int paidInstalments;
-    private double paidInstalmentsAmount;
+    private Number paidInstalmentsAmount;
     private int soldInvestments;
-    private double soldInvestmentsAmount;
+    private Number soldInvestmentsAmount;
     private int boughtInvestments;
-    private double boughtInvestmentsAmount;
+    private Number boughtInvestmentsAmount;
 
     public int getNewInvestments() {
         return newInvestments;
     }
 
-    public double getNewInvestmentsAmount() {
+    public Number getNewInvestmentsAmount() {
         return newInvestmentsAmount;
     }
 
@@ -22,7 +22,7 @@ public class ZonkyWeeklyStatResponse {
         return paidInstalments;
     }
 
-    public double getPaidInstalmentsAmount() {
+    public Number getPaidInstalmentsAmount() {
         return paidInstalmentsAmount;
     }
 
@@ -30,7 +30,7 @@ public class ZonkyWeeklyStatResponse {
         return soldInvestments;
     }
 
-    public double getSoldInvestmentsAmount() {
+    public Number getSoldInvestmentsAmount() {
         return soldInvestmentsAmount;
     }
 
@@ -38,7 +38,7 @@ public class ZonkyWeeklyStatResponse {
         return boughtInvestments;
     }
 
-    public double getBoughtInvestmentsAmount() {
+    public Number getBoughtInvestmentsAmount() {
         return boughtInvestmentsAmount;
     }
 }

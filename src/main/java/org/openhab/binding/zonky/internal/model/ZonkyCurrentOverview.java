@@ -1,27 +1,27 @@
 package org.openhab.binding.zonky.internal.model;
 
 public class ZonkyCurrentOverview {
-    private int totalInvestment;
-    private int principalPaid;
-    private int interestPaid;
+    private Number totalInvestment;
+    private Number principalPaid;
+    private Number interestPaid;
     private int investmentCount;
-    private int principalLeft;
-    private int principalLeftToPay;
-    private int principalLeftDue;
-    private int interestPlanned;
-    private int interestLeft;
-    private int interestLeftToPay;
-    private int interestLeftDue;
+    private Number principalLeft;
+    private Number principalLeftToPay;
+    private Number principalLeftDue;
+    private Number interestPlanned;
+    private Number interestLeft;
+    private Number interestLeftToPay;
+    private Number interestLeftDue;
 
-    public int getTotalInvestment() {
+    public Number getTotalInvestment() {
         return totalInvestment;
     }
 
-    public int getPrincipalPaid() {
+    public Number getPrincipalPaid() {
         return principalPaid;
     }
 
-    public int getInterestPaid() {
+    public Number getInterestPaid() {
         return interestPaid;
     }
 
@@ -29,31 +29,31 @@ public class ZonkyCurrentOverview {
         return investmentCount;
     }
 
-    public int getPrincipalLeft() {
+    public Number getPrincipalLeft() {
         return principalLeft;
     }
 
-    public int getPrincipalLeftToPay() {
+    public Number getPrincipalLeftToPay() {
         return principalLeftToPay;
     }
 
-    public int getPrincipalLeftDue() {
+    public Number getPrincipalLeftDue() {
         return principalLeftDue;
     }
 
-    public int getInterestPlanned() {
+    public Number getInterestPlanned() {
         return interestPlanned;
     }
 
-    public int getInterestLeft() {
+    public Number getInterestLeft() {
         return interestLeft;
     }
 
-    public int getInterestLeftToPay() {
+    public Number getInterestLeftToPay() {
         return interestLeftToPay;
     }
 
-    public int getInterestLeftDue() {
+    public Number getInterestLeftDue() {
         return interestLeftDue;
     }
 }

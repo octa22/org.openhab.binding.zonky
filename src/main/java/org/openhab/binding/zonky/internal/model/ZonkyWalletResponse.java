@@ -2,11 +2,11 @@ package org.openhab.binding.zonky.internal.model;
 
 public class ZonkyWalletResponse {
     private int id;
-    private double balance;
-    private double availableBalance;
-    private double blockedBalance;
-    private double creditSum;
-    private double debitSum;
+    private Number balance;
+    private Number availableBalance;
+    private Number blockedBalance;
+    private Number creditSum;
+    private Number debitSum;
     private String variableSymbol;
     private ZonkyAccount account;
 
@@ -14,23 +14,23 @@ public class ZonkyWalletResponse {
         return id;
     }
 
-    public double getBalance() {
+    public Number getBalance() {
         return balance;
     }
 
-    public double getAvailableBalance() {
+    public Number getAvailableBalance() {
         return availableBalance;
     }
 
-    public double getBlockedBalance() {
+    public Number getBlockedBalance() {
         return blockedBalance;
     }
 
-    public double getCreditSum() {
+    public Number getCreditSum() {
         return creditSum;
     }
 
-    public double getDebitSum() {
+    public Number getDebitSum() {
         return debitSum;
     }
 

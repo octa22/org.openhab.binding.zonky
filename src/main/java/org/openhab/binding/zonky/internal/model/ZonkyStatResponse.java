@@ -1,16 +1,16 @@
 package org.openhab.binding.zonky.internal.model;
 
 public class ZonkyStatResponse {
-    private double currentProfitability;
-    private double expectedProfitability;
+    private Number currentProfitability;
+    private Number expectedProfitability;
     private ZonkyCurrentOverview currentOverview;
     private ZonkyOverallOverview overallOverview;
 
-    public double getCurrentProfitability() {
+    public Number getCurrentProfitability() {
         return currentProfitability;
     }
 
-    public double getExpectedProfitability() {
+    public Number getExpectedProfitability() {
         return expectedProfitability;
     }
 

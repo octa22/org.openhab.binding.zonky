@@ -1,23 +1,23 @@
 package org.openhab.binding.zonky.internal.model;
 
 public class ZonkyOverallOverview {
-    private int totalInvestment;
-    private int principalPaid;
-    private int interestPaid;
-    private int investmentCount;
-    private int feesAmount;
-    private int netIncome;
-    private int principalLost;
+    private Number totalInvestment;
+    private Number principalPaid;
+    private Number interestPaid;
+    private int  investmentCount;
+    private Number feesAmount;
+    private Number netIncome;
+    private Number principalLost;
 
-    public int getTotalInvestment() {
+    public Number getTotalInvestment() {
         return totalInvestment;
     }
 
-    public int getPrincipalPaid() {
+    public Number getPrincipalPaid() {
         return principalPaid;
     }
 
-    public int getInterestPaid() {
+    public Number getInterestPaid() {
         return interestPaid;
     }
 
@@ -25,15 +25,15 @@ public class ZonkyOverallOverview {
         return investmentCount;
     }
 
-    public int getFeesAmount() {
+    public Number getFeesAmount() {
         return feesAmount;
     }
 
-    public int getNetIncome() {
+    public Number getNetIncome() {
         return netIncome;
     }
 
-    public int getPrincipalLost() {
+    public Number getPrincipalLost() {
         return principalLost;
     }
 }
