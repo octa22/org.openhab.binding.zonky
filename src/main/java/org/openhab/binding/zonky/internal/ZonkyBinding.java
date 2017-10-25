@@ -16,7 +16,6 @@ import org.openhab.core.binding.AbstractActiveBinding;
 import org.openhab.core.items.ItemNotFoundException;
 import org.openhab.core.items.ItemRegistry;
 import org.openhab.core.library.types.DecimalType;
-import org.openhab.core.library.types.StringType;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.State;
 import org.osgi.framework.BundleContext;
@@ -215,7 +214,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                     oldValue = itemRegistry.getItem(itemName).getState();
                     if (isWalletType(type)) {
                         Number value = getWalletValue(walletResponse, type);
-                        newValue = new StringType(value.toString());
+                        newValue = new DecimalType(value.doubleValue());
                     } else if (isWeeklyStatiscticsType(type)) {
                         type = type.replace("weekly.", "");
                         Number value = getWeeklyStatValue(weeklyResponse, type);
@@ -233,11 +232,11 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                             if (type.startsWith("currentOverview.")) {
                                 subType = type.replace("currentOverview.", "");
                                 Number value = GetStatCurrentOverviewValue(currentOverview, subType);
-                                newValue = new StringType(value.toString());
+                                newValue = new DecimalType(value.doubleValue());
                             } else if (type.startsWith("overallOverview.")) {
                                 subType = type.replace("overallOverview.", "");
                                 Number value = GetStatOverallOverviewValue(overallOverview, subType);
-                                newValue = new StringType(value.toString());
+                                newValue = new DecimalType(value.doubleValue());
                             }
                         }
                     }
@@ -245,7 +244,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                         eventPublisher.postUpdate(itemName, newValue);
                     }
                 } catch (ItemNotFoundException e) {
-                    logger.error(e.toString());
+                    logger.error("Unknown item", e);
                 }
             }
         }
@@ -273,9 +272,10 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
         return 0;
     }
 
+    /*
     private boolean isIntegerType(String type) {
         return type.equals("newInvestments") || type.equals("paidInstalments") || type.equals("soldInvestments") || type.equals("boughtInvestments");
-    }
+    }*/
 
     private Number GetStatOverallOverviewValue(ZonkyOverallOverview overallOverview, String subType) {
         switch (subType) {
@@ -294,7 +294,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             case "totalInvestment":
                 return overallOverview.getTotalInvestment();
         }
-        return 0;
+        return 0d;
     }
 
     private Number GetStatCurrentOverviewValue(ZonkyCurrentOverview currentOverview, String subType) {
@@ -323,7 +323,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 return currentOverview.getTotalInvestment();
         }
 
-        return 0;
+        return 0d;
     }
 
     private Number getWalletValue(ZonkyWalletResponse wallet, String type) {
@@ -380,23 +380,15 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 wr.write(postData);
             }
             String line = readResponse(connection);
-            logger.debug("Response: " + line);
-            /*
-            JsonObject jobject = parser.parse(line).getAsJsonObject();
-            if (jobject != null) {
-                token = jobject.get("access_token").getAsString();
-                refreshToken = jobject.get("refresh_token").getAsString();
-                return true;
-            }*/
             ZonkyTokenResponse response = gson.fromJson(line, ZonkyTokenResponse.class);
             token = response.getAccessToken();
             refreshToken = response.getRefreshToken();
             return true;
 
         } catch (MalformedURLException e) {
-            logger.error("The URL '" + url + "' is malformed: " + e.toString());
+            logger.error("The URL '{}' is malformed", url, e);
         } catch (Exception e) {
-            logger.error("Cannot get Zonky login token: " + e.toString());
+            logger.error("Cannot get Zonky login token", e);
         }
         return false;
     }
@@ -431,12 +423,11 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             }
 
             String line = readResponse(connection);
-            logger.debug("Response: " + line);
             return line;
         } catch (MalformedURLException e) {
-            logger.error("The URL '" + url + "' is malformed: " + e.toString());
+            logger.error("The URL '{}' is malformed", url, e);
         } catch (Exception e) {
-            logger.error("Cannot get Zonky wallet response: " + e.toString());
+            logger.error("Cannot get Zonky wallet response", e);
         }
         return null;
     }
@@ -454,12 +445,11 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             connection.setRequestProperty("Authorization", "Bearer " + token);
 
             String line = readResponse(connection);
-            logger.debug("Response: " + line);
             return line;
         } catch (MalformedURLException e) {
-            logger.error("The URL '" + url + "' is malformed: " + e.toString());
+            logger.error("The URL '{}' is malformed", url, e);
         } catch (Exception e) {
-            logger.error("Cannot get Zonky logout response: " + e.toString());
+            logger.error("Cannot get Zonky logout response", e);
         }
         return null;
     }
@@ -485,8 +475,6 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 wr.write(postData);
             }
             String line = readResponse(connection);
-            logger.debug("Response: " + line);
-
             ZonkyTokenResponse response = gson.fromJson(line, ZonkyTokenResponse.class);
             token = response.getAccessToken();
             refreshToken = response.getRefreshToken();
@@ -494,9 +482,9 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
                 logger.info("Successfully logged in to Zonky!");
             }
         } catch (MalformedURLException e) {
-            logger.error("The URL '" + url + "' is malformed: " + e.toString());
+            logger.error("The URL '{}' is malformed", url, e);
         } catch (Exception e) {
-            logger.error("Cannot get Zonky login token: " + e.toString());
+            logger.error("Cannot get Zonky login token", e);
         }
     }
 
@@ -520,7 +508,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             body.append(line).append("\n");
         }
         line = body.toString();
-        logger.debug(line);
+        logger.debug("Response: {}", line);
         return line;
     }
 

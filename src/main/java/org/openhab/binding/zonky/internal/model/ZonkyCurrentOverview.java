@@ -4,7 +4,7 @@ public class ZonkyCurrentOverview {
     private Number totalInvestment;
     private Number principalPaid;
     private Number interestPaid;
-    private int investmentCount;
+    private Number investmentCount;
     private Number principalLeft;
     private Number principalLeftToPay;
     private Number principalLeftDue;
@@ -25,7 +25,7 @@ public class ZonkyCurrentOverview {
         return interestPaid;
     }
 
-    public int getInvestmentCount() {
+    public Number getInvestmentCount() {
         return investmentCount;
     }
 
