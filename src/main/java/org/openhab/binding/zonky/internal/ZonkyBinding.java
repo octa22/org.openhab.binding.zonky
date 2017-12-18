@@ -30,6 +30,8 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
 
 
@@ -69,6 +71,8 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     private String password = "";
     private String token = "";
     private String refreshToken = "";
+
+    private int lastHours;
 
     //Gson parser
     private Gson gson = new Gson();
@@ -185,9 +189,15 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
         if (token.isEmpty()) {
             login();
         } else {
-            if (!refreshToken()) {
-                token = "";
-                login();
+            // relogin every hour
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(new Date());
+            int hours = cal.get(Calendar.HOUR_OF_DAY);
+            if (lastHours >= 0 && lastHours != hours) {
+                if (!refreshToken()) {
+                    token = "";
+                    login();
+                }
             }
         }
 
@@ -398,17 +408,18 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
     }
 
     private String getStatistics() {
-        return sendJsonRequest("users/me/investments/statistics");
+        return sendJsonRequest("statistics/overview");
     }
 
     private String getWeeklyStatistics() {
-        return sendJsonRequest("users/me/investments/weekly-statistics");
+        return sendJsonRequest("statistics/weekly-statistics");
     }
 
 
     private String sendJsonRequest(String uri) {
         String url = null;
 
+        logger.debug("sending uri request: {}", uri);
         try {
             //login
             url = ZONKY_URL + uri;
@@ -419,11 +430,11 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             connection.setRequestProperty("Authorization", "Bearer " + token);
 
             if (connection.getResponseCode() != 200) {
+                logger.error("Got response code: {}", connection.getResponseCode());
                 return null;
             }
 
-            String line = readResponse(connection);
-            return line;
+            return readResponse(connection);
         } catch (MalformedURLException e) {
             logger.error("The URL '{}' is malformed", url, e);
         } catch (Exception e) {
@@ -444,8 +455,7 @@ public class ZonkyBinding extends AbstractActiveBinding<ZonkyBindingProvider> {
             setupConnectionDefaults(connection);
             connection.setRequestProperty("Authorization", "Bearer " + token);
 
-            String line = readResponse(connection);
-            return line;
+            return readResponse(connection);
         } catch (MalformedURLException e) {
             logger.error("The URL '{}' is malformed", url, e);
         } catch (Exception e) {
